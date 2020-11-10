@@ -1,22 +1,15 @@
-import pandas as pd
 from recipe_scrapers import scrape_me
-import time
-import random
 import json
-import pymongo
+import extruct
+import requests
+import re
+from w3lib.html import get_base_url
+from bs4 import BeautifulSoup
+import random
+import time
 from tqdm.notebook import tqdm
-import numpy as np
 
 from . import db_funcs
-
-def wait():
-    """
-    Random amount of time to wait to avoid overloading a website
-    :return:
-    """
-    x = random.randrange(50, 200, 1) / 100
-    print(f"Waiting for {x} Seconds.", end='\r')
-    time.sleep(x)
 
 class URLRetriever:
     """
@@ -378,6 +371,184 @@ class URLRetriever:
                 print(f"Total Scraped at {len(self.recipes)}.")
                 print(f"Total in Database at {len(list(self.urls.find({'source': 'food_com'})))}.")
 
+class RecipeCollector:
+
+    def __init__(self, url, domain, source, utm_pages=False):
+        """
+        :param url: The URL to start the crawler on
+        :param domain: Domain of the URL to check which links link off the site
+        :param source: DB name for this source
+        :param utm_pages: Bool for whether pagination occurs within utm parameters
+        """
+        # User Params
+        self.base_url = url
+        self.domain = domain
+        self.source = source
+        self.rdb = db_funcs.get_scraper_dbs()[1]
+        self.sdb = db_funcs.get_source_ref()
+        self.utm_pages = utm_pages
+
+        # Scraping Defaults
+        self.headers = {
+            "User-Agent": "Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.9.0.7) Gecko/2009021910 Firefox/3.0.7"}
+
+        # Dictionaries for checking links (avoiding redundancy)
+        if len(list(self.sdb.find({"_id": source}))) > 0:
+            src_ref = list(self.sdb.find({"_id": source}))[0]
+            self.link_library = src_ref["link_library"]
+            self.scraped_recipes = src_ref["scraped_recipes"]
+        else:
+            self.link_library = {}
+            self.scraped_recipes = []
+            self.sdb.insert_one({"_id": source,
+                                 "link_library": self.link_library,
+                                 "scraped_recipes": self.scraped_recipes})
+
+    # Helper Functions
+    def recursive_page_scrape(self, page):
+        """
+        Crawls across website and scrapes recipes as discovered.
+        The navigation is recursive, scraping each page it comes upon and all the links
+        on that page.
+        """
+        # Mark as being read
+        print_message = f"Recipes Found: {len(self.scraped_recipes)} | Scraping {page}"
+        print(print_message.ljust(200, " "), end="\r", flush=True)
+        self.link_library[page] = 1
+        self.sdb.update_one({"_id": self.source}, {"$set": {"link_library": self.link_library}})
+
+        # Scrape it, if it errors out it won't be tried again
+        r = requests.get(page, headers=self.headers)
+        soup = BeautifulSoup(r.content, "html.parser")
+        base_url = get_base_url(r.text, r.url)
+        data = extruct.extract(r.text, base_url=base_url)
+
+        # Recipe
+        self.scrape_recipe(data, page)
+
+        # Look for all links on page
+        for link_string in soup.findAll('a', attrs={'href': re.compile("^https://")}):
+            link = clean_url(link_string.get('href'), self.utm_pages)
+            if check_link(link, self.domain):
+                if link not in self.link_library.keys():
+                    wait()
+                    self.recursive_page_scrape(link)
+
+    def scrape_recipe(self, link_data, page):
+        """
+        Checks if given link_data contains a recipe and scrapes if it does.
+        """
+        if page not in self.scraped_recipes:
+            recipe = {}
+            self.recursive_recipe_lookup(link_data, recipe)
+
+            if len(recipe) == 0:
+                return False
+            else:
+                self.add_scraped_recipe(recipe["recipe_data"])
+                self.scraped_recipes.append(page)
+                self.sdb.update_one({"_id": self.source}, {"$set": {"scraped_recipes": self.scraped_recipes}})
+                return True
+        else:
+            return False
+
+    def recursive_recipe_lookup(self, data, recipe):
+        for key, value in data.items():
+            if key == "@type":
+                if value == "Recipe":
+                    recipe["recipe_data"] = data
+            if type(value) == type(dict()):
+                self.recursive_recipe_lookup(value, recipe)
+            elif type(value) == type(list()):
+                for val in value:
+                    if type(val) == type(str()):
+                        pass
+                    elif type(val) == type(list()):
+                        pass
+                    elif type(val) == type(tuple()):
+                        pass
+                    else:
+                        self.recursive_recipe_lookup(val, recipe)
+
+    def add_scraped_recipe(self, recipe_data):
+        """
+        Takes a schema.org scraped recipe, formats it and adds to database.
+        """
+        row = {}
+
+        # Source
+        row["source"] = self.source
+
+        # Title
+        row['title'] = recipe_data["name"] if "name" in recipe_data.keys() else None
+
+        # Description
+        row['description'] = recipe_data["description"] if "description" in recipe_data.keys() else None
+
+        # Author
+        row["author"] = recipe_data["author"]["name"] if "author" in recipe_data.keys() else None
+
+        # Ingredients
+        row["ingredients"] = recipe_data["recipeIngredient"] if "recipeIngredient" in recipe_data.keys() else None
+
+        # url
+        row["url"] = recipe_data["url"] if "url" in recipe_data.keys() else None
+
+        # Times
+        row["prepTime"] = recipe_data["prepTime"] if "prepTime" in recipe_data.keys() else None
+        row["cookTime"] = recipe_data["cookTime"] if "cookTime" in recipe_data.keys() else None
+        row["totalTime"] = recipe_data["totalTime"] if "totalTime" in recipe_data.keys() else None
+
+        # Date Published (left in format)
+        row["datePublished"] = recipe_data["datePublished"] if "datePublished" in recipe_data.keys() else None
+
+        # Yields
+        row["recipeYield"] = return_as_list(recipe_data["recipeYield"])[
+            0] if "recipeYield" in recipe_data.keys() else None
+
+        # Category
+        row["recipeCategory"] = return_as_list(
+            recipe_data["recipeCategory"]) if "recipeCategory" in recipe_data.keys() else None
+
+        # Cooking Method
+        row["cookingMethod"] = return_as_list(
+            recipe_data["cookingMethod"]) if "cookingMethod" in recipe_data.keys() else None
+
+        # Cuisine
+        row["recipeCuisine"] = return_as_list(
+            recipe_data["recipeCuisine"]) if "recipeCuisine" in recipe_data.keys() else None
+
+        # Ratings
+        if 'aggregateRating' in recipe_data.keys():
+            row["rating"] = recipe_data["aggregateRating"]["ratingValue"] if "ratingValue" in recipe_data[
+                "aggregateRating"].keys() else None
+            row["review_count"] = recipe_data["aggregateRating"]["reviewCount"] if "reviewCount" in recipe_data[
+                "aggregateRating"].keys() else None
+        else:
+            row["rating"] = None
+            row["review_count"] = None
+
+        # Reviews (unstructured)
+        row["reviews"] = recipe_data["review"] if "review" in recipe_data.keys() else None
+
+        # Instructions
+        if "recipeInstructions" in recipe_data.keys():
+            try:
+                row["instructions"] = [x['text'] for x in recipe_data["recipeInstructions"]]
+            except:
+                row["instructions"] = recipe_data["recipeInstructions"]
+        else:
+            row["instructions"] = None
+
+        # Keywords
+        if "keywords" in recipe_data.keys():
+            row["keywords"] = [x for x in recipe_data["keywords"].split(",")]
+        else:
+            row["keywords"] = None
+
+        # Write into database
+        self.rdb.insert_one(row)
+
 def scrape_unread_urls(urls, recipes):
     """
     Urls that have been marked as unread within the urls database
@@ -494,3 +665,50 @@ def scrape_unread_urls(urls, recipes):
             query = {"_id": url}
             newvalues = {"$set": {"error": True}}
             urls.update_one(query, newvalues)
+
+# Helper Functions
+def wait():
+    """
+    Random amount of time to wait to avoid overloading a website
+    :return:
+    """
+    x = random.randrange(50, 200, 1) / 100
+    print(f"Waiting for {x} Seconds.", end='\r')
+    time.sleep(x)
+
+def split_time(t):
+    clean_t = t[2:]
+    if 'H' in clean_t:
+        split = clean_t.split("H")
+        hours = split[0]
+        minutes = split[1][:-1]
+        return (60 * int(hours)) + int(minutes)
+    else:
+        minutes = clean_t[:-1]
+        return int(minutes)
+
+def return_as_list(x):
+    if type(x) == type(list()):
+        return x
+    else:
+        return [x]
+
+def clean_url(x, utm_pages=False):
+    clean = x
+    if "#" in clean:
+        clean = clean.split("#")[0]
+    if not utm_pages:
+        if "?" in clean:
+            clean = clean.split("?")[0]
+            return clean
+    return clean
+
+def check_link(link, domain):
+    stopwords = [".jpg", ".png", "wprm_print", "wprm-print", "wp-content", "comment-page"]
+
+    if not link.startswith(domain):
+        return False
+    for word in stopwords:
+        if word in link:
+            return False
+    return True

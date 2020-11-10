@@ -19,6 +19,16 @@ def get_scraper_dbs():
     recipes = db['recipes']
     return urls, recipes
 
+def get_source_ref():
+    """
+    Get a list of sources from the database
+    :return:
+    """
+    # Database setup
+    client = pymongo.MongoClient("mongodb://localhost:27017/")
+    db = client['food_analysis']
+    return db['source_ref']
+
 def print_db_metadata(urls, recipes):
     """
     Easy way to obtain some basic information about the recipes and urls
