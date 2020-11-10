@@ -7,6 +7,8 @@ import pymongo
 from tqdm.notebook import tqdm
 import numpy as np
 
+from . import db_funcs
+
 def wait():
     """
     Random amount of time to wait to avoid overloading a website
@@ -15,6 +17,49 @@ def wait():
     x = random.randrange(50, 200, 1) / 100
     print(f"Waiting for {x} Seconds.", end='\r')
     time.sleep(x)
+
+class URLRetriever:
+    """
+    Class dedicated to retrieving URLS from recipe_scrapers supported websites.
+    This class is used to get a list of recipe urls that will be fed into the scrape_unread_urls
+    function. This will update the DB directly, so after scraping just run the scrape_unread_urls
+    """
+    def __init__(self):
+        self.urls, self.recipes = db_funcs.get_scraper_dbs()
+
+        self.method_map = {'Epicurious':self.scrape_epicurious,
+                           'Host the Toast':self.scrape_host_the_toast,
+                           '101 Cookbooks':self.scrape_101_cookbooks,
+                           'Inspiralized':self.scrape_inspiralized,
+                           'Jamie Oliver':self.scrape_jamie_oliver,
+                           'Kreme de la Krum':self.scrape_kreme_de_la_krum,
+                           'Minimalist Baker':self.scrape_minamlist_baker,
+                           'Next One':self.scrape_next_one,
+                           'Food.com':self.scrape_food_com}
+
+
+    def Scrape(self, name=None):
+        """
+        Run the scraper. See get_supported_retreiver_sites for eligible sites.
+        Indiviual functions can be run without names.
+        :param name: Website name for scraping
+        :return:
+        """
+        if name in self.method_map:
+            self.method_map[name]()
+        else:
+            return "Website not Supported."
+
+    def get_supported_retreiver_sites(self):
+        """
+        Print eligible sites
+        :return: None
+        """
+        print(self.method_map.keys())
+
+    # Functions per site
+    def scrape_epicurious(self):
+        
 
 def scrape_unread_urls(urls, recipes):
     """
