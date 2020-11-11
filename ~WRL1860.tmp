@@ -3,7 +3,7 @@ The code and analysis tools behind the website formulatedflavors.com, a food blo
 
 The code in this repository focuses on 3 functions: Scraping, Parsing and Analyzing. Scraping offers quick functions that allow for mass recipe gathering with very little knowledge of the recipe sites and minimal work upfront for the user. Parsing allows for the processing of the recipes into more machine-readable formats. Analysis employs the newly acquired and structured data to find the best ways to make or improve a recipe.
 
-# Scripts – Building and Parsing a Recipe Database 
+# Scraping - Building a Recipe Database 
 There are two major sources of recipes: recipe sites and food blogs. Sites like AllRecipes.com or Food.com are good examples of a recipe site. They contain large amounts of recipes submitted by a large user base. Food blogs on the other hand are typically a single author creating many recipes and provide more information (pictures, anecdotes, etc.) around the recipes. While it was attempting to let the bulk of the recipes come from a single few sources and recipe sites for technical simplicity, it was important that food blogs were well represented. Food blogs have many of the high-quality and well-crafted recipes that circulate through Pintrest and Yummly. To ensure that the optimal recipe exists as the aggregate of the recipes in the database it was important to have the perfect mix recipe types.
 
 ## scrapers.py
@@ -25,20 +25,10 @@ Other approaches include using train/test datasets from sources like NYT cooking
 
 Once the parsing is figured out the project will function like an application, ready to take in a recipe and spit out analysis on improvements.
 
-# Notebooks – A scraping and analysis interface
-The notebooks for this project function as a simpler code interface. The work is done by the scripts, but orchestrating which scripts and blogs to obtain is done in a notebook.
+# Analysis
+The ultimate output are clean analysis ready datasets for staple foods. There are many challenges to getting to this point, most of which fall in the realm of NLP. Some of the challenges are listed below:
 
-## Recipe Scraping.ipynb
-If it involves getting the recipe information from the internet it happens here. Some of the feeds from existing blogs I used to create my own database are in the notebook. Example usage of the scrapers and db_funcs scripts can be found in this notebook.
+For a more tangible view of the output see the choco_chip_sample.csv. This contains a manually assembled recipe comparison to show where certain recipes succeed and fall short.
 
-## Analysis.ipynb
-Deploying the parsers and generating datasets is done here. This is the bear bones of the notebook given the early stage of the parser functionality. Once parsing is in a more fixed state it will likely be streamlined with high-level APIs to perform the bulk of the functionality across the entire database. This notebook will then be dedicated to extracting insight from the parsed recipes.
-
-# Planned Work
-- Better support for setting up the initial MongoDB
-- Robust ingredient parsing using a combination of existing libraries and NLP algorithms
-- Instruction Parsing
-- analysis.py with streamlined dataset and visualization setups to get insights faster
-- Expansion of food blogs scraped
-- Large list of potential sources so the libraries could automatically obtain recipes from hundreds of domains and websites
-- Efficiency increase for recursive page scrapes
+# Future Progress
+- Better support for setting up the inital MongoDB
