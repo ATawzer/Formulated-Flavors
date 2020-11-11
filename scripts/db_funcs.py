@@ -77,3 +77,32 @@ def clean_read_recipe_urls(urls, recipes):
     read_urls = [x["url"] for x in list(recipes.find({}))]
     for url in tqdm(read_urls):
         urls.update_one({"_id": url}, {"$set": {"read": True, "error": False}})
+
+def clean_recipe_duplicates(recipes, source):
+    """
+    Cleaning up blogs having multiple posts for same recipe
+    :param recipes: Recipes database
+    :param source: source to clean up in recipes
+    :return: None, updates DB directly
+    """
+
+    # Setup
+    unique_cols = ["title", "datePublished"]
+    select_cols = [x for x in unique_cols]
+    select_cols.append("_id")
+
+    # Determine Dups
+    df = pd.DataFrame(list(recipes.find({"source": source})))
+    print(f"Recipes Found: {len(df)}")
+
+    df = df[select_cols].groupby(unique_cols, as_index=False)
+    df = df["_id"].apply(list).reset_index(name="ids")
+
+    # Remove the duplicates
+    for index in tqdm(df.index):
+        if len(df.loc[index, 'ids']) > 1:
+            delete = [x for x in df.loc[index, 'ids'][1:]]
+            for did in delete:
+                recipes.delete_one({"_id": did})
+
+    print(f"Recipes After de-dup: {len(list(recipes.find({'source': source})))}")
