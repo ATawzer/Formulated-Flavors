@@ -186,7 +186,8 @@ class IngredientParser:
                       "types":["unsulphured", "un-sulphured", "blackstrap"]
                   },
                   "cloves":{
-                      "types":[]
+                      "types":[],
+                      "aka":['clove']
                   },
                   "allspice":{
                       "types":[],
@@ -195,6 +196,28 @@ class IngredientParser:
                   "black pepper":{
                       "types":["ground pepper"]
                   },
+                  "strawberry":{
+                      "types":[],
+                      "aka":['strawberries']
+                  },
+                  "instant espresso":{
+                      "types":[]
+                  },
+                  "pumpkin pie spice":{
+                      "types":[]
+                  },
+                  "apple pie spice":{
+                      "types":[]
+                  },
+                  "orange peel":{
+                      "types":[]
+                  },
+                  "margarine":{
+                      "types":[]
+                  },
+                  "chocolate":{
+                      "types":[]
+                  }
 
                 }
 
