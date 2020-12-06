@@ -10,7 +10,7 @@ class IngredientParser:
         .Parse(). This class is only half-baked, it contains a crude and static ingredient reference
         but would need to be widely expanded for general use.
         """
-        self.units = ["cup", "c." "g", "gram", 'lb', 'teaspoon', "tsp", "tbsp", "oz", 'tablespoon', 'container', 'packet',
+        self.units = ["cup", "c.", "g", "gram", 'lb', 'teaspoon', "tsp", "tbsp", "oz", 'tablespoon', 'container', 'packet',
                  'bag',
                  "stick",
                  'quart', 'pound', 'can', 'bottle', 'pint', 'package', 'ounce', 'jars', 'heads', 'gallons', 'drops',
@@ -178,7 +178,24 @@ class IngredientParser:
                   },
                   "peanut butter":{
                       "types":[]
-                  }
+                  },
+                  "ginger":{
+                      "types":[]
+                  },
+                  "molasses":{
+                      "types":["unsulphured", "un-sulphured", "blackstrap"]
+                  },
+                  "cloves":{
+                      "types":[]
+                  },
+                  "allspice":{
+                      "types":[],
+                      "aka":["all spice"]
+                  },
+                  "black pepper":{
+                      "types":["ground pepper"]
+                  },
+
                 }
 
     def Parse(self, ing):
@@ -210,6 +227,10 @@ class IngredientParser:
             elif " " + unit + " " in ing:
                 ing_dict["unit"] = unit
                 split_ing = ing.lower().split(" " + unit + " ")
+                break
+            elif " " + unit +"." in ing:
+                ing_dict["unit"] = unit
+                split_ing = ing.lower().split(" " + unit +".")
                 break
             else:
                 continue
