@@ -1,7 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="32a90d85-08ca-46f4-9a5f-7f6f644d7b27" name="Default Changelist" comment="" />
+    <list default="true" id="32a90d85-08ca-46f4-9a5f-7f6f644d7b27" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/../.ipynb_checkpoints/AI Ingredient Handling-checkpoint.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../.ipynb_checkpoints/AI Ingredient Handling-checkpoint.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../AI Ingredient Handling.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../AI Ingredient Handling.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../~$README.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../~WRL1860.tmp" beforeDir="false" />
+    </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
